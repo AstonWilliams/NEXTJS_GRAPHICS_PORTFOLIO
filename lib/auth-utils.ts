@@ -1,56 +1,23 @@
-import { v4 as uuidv4 } from "uuid"
-
-// Client-side only implementation
 export function getDeviceId(): string {
   if (typeof window === "undefined") {
-    return "server-side"
+    return "server"
   }
-
   let deviceId = localStorage.getItem("deviceId")
   if (!deviceId) {
-    deviceId = uuidv4()
+    deviceId = generateId()
     localStorage.setItem("deviceId", deviceId)
   }
-
   return deviceId
 }
 
-export function getAuthToken(): string | null {
-  if (typeof window === "undefined") {
-    return null
-  }
-
-  return localStorage.getItem("authToken")
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
 
-export function getTokenFromRequest(request: Request): string | null {
+export async function getAuthToken(request: Request): Promise<string | null> {
   const authHeader = request.headers.get("Authorization")
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.substring(7)
   }
-  return authHeader.substring(7) // Remove 'Bearer ' prefix
-}
-
-export function setAuthToken(token: string): void {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  localStorage.setItem("authToken", token)
-}
-
-export function clearAuthToken(): void {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  localStorage.removeItem("authToken")
-}
-
-export function isAuthenticated(): boolean {
-  if (typeof window === "undefined") {
-    return false
-  }
-
-  return !!localStorage.getItem("authToken")
+  return null
 }

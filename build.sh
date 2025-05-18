@@ -37,34 +37,29 @@ $PIP_CMD install --user -r requirements.txt
 if python3 -c "import django" &> /dev/null; then
     echo "Django installed successfully"
     
-    # Skip static collection and migrations in build phase
-    # These will be handled by the Django app during runtime
-    echo "Skipping static collection and migrations for build phase..."
+    # Create necessary directories for Django
+    mkdir -p staticfiles
+    mkdir -p media
+    mkdir -p static
+    
+    # Run Django commands
+    echo "Running makemigrations..."
+    python3 manage.py makemigrations portfolio || echo "makemigrations failed, but continuing..."
+    
+    echo "Running migrations..."
+    python3 manage.py migrate || echo "migrations failed, but continuing..."
+    
+    echo "Creating admin user..."
+    python3 create_admin.py || echo "create_admin.py failed, but continuing..."
+    
+    echo "Collecting static files..."
+    python3 manage.py collectstatic --noinput || echo "collectstatic failed, but continuing..."
 else
     echo "Django installation failed, but continuing with frontend build..."
 fi
 
 # Return to project root
 cd ../..
-
-# Create necessary directories for Django
-mkdir -p backend/django_portfolio/staticfiles
-mkdir -p backend/django_portfolio/media
-
-# Create a simple wsgi handler if it doesn't exist
-if [ ! -f backend/django_portfolio/django_portfolio/wsgi_handler.py ]; then
-    echo "Creating wsgi_handler.py..."
-    cat > backend/django_portfolio/django_portfolio/wsgi_handler.py << 'EOF'
-from django.core.wsgi import get_wsgi_application
-import os
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_portfolio.settings')
-application = get_wsgi_application()
-
-def handler(event, context):
-    return application(event.get('headers', {}), lambda x, y: (x, y, []))
-EOF
-fi
 
 echo "=== Django setup completed, proceeding to Next.js build ==="
 
