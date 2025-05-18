@@ -2,9 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/django_portfolio/wsgi.py",
+      "src": "backend/django_portfolio/django_portfolio/wsgi.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.9"
+      }
     },
     {
       "src": "package.json",
@@ -14,28 +17,23 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/django_portfolio/wsgi.py"
+      "dest": "/backend/django_portfolio/django_portfolio/wsgi.py"
     },
     {
       "src": "/admin/(.*)",
-      "dest": "backend/django_portfolio/wsgi.py"
+      "dest": "/backend/django_portfolio/django_portfolio/wsgi.py"
     },
     {
       "src": "/static/(.*)",
-      "dest": "backend/django_portfolio/wsgi.py"
+      "dest": "/backend/django_portfolio/django_portfolio/wsgi.py"
     },
     {
       "src": "/media/(.*)",
-      "dest": "backend/django_portfolio/wsgi.py"
+      "dest": "/backend/django_portfolio/django_portfolio/wsgi.py"
     },
     {
       "src": "/(.*)",
       "dest": "/$1"
     }
-  ],
-  "build": {
-    "env": {
-      "DJANGO_SETTINGS_MODULE": "django_portfolio.settings"
-    }
-  }
+  ]
 }
