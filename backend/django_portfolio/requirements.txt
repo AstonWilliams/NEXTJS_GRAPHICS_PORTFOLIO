@@ -12,3 +12,4 @@ django-redis
 uvicorn
 channels
 daphne
+dj-database-url
