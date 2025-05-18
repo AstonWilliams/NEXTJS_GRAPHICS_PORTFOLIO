@@ -1,23 +1,22 @@
-export function getDeviceId() {
-  if (typeof window !== "undefined") {
-    let deviceId = localStorage.getItem("deviceId")
-    if (!deviceId) {
-      deviceId = generateId()
-      localStorage.setItem("deviceId", deviceId)
-    }
-    return deviceId
+import { cookies } from "next/headers"
+import { v4 as uuidv4 } from "uuid"
+
+export async function getDeviceId(): Promise<string> {
+  const cookieStore = cookies()
+  let deviceId = cookieStore.get("deviceId")?.value
+
+  if (!deviceId) {
+    deviceId = uuidv4()
+    cookieStore.set("deviceId", deviceId)
   }
-  return null
+
+  return deviceId
 }
 
-function generateId() {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-}
-
-export async function getAuthToken(request: Request): Promise<string | null> {
+export async function getTokenFromRequest(request: Request): Promise<string | null> {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null
   }
-  return authHeader.substring(7)
+  return authHeader.substring(7) // Remove 'Bearer ' prefix
 }

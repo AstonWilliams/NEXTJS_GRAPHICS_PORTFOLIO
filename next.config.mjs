@@ -8,21 +8,10 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ['localhost', '127.0.0.1', 'placehold.co', 'via.placeholder.com'],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
-      },
-    ],
+    domains: ['localhost', '127.0.0.1', 'placehold.co', 'via.placeholder.com', 'arslanamingraphicsportfolio.vercel.app'],
     unoptimized: true,
   },
-  // In production, we don't need to rewrite API routes
-  // as they're handled by Vercel's routing in vercel.json
+  // We don't need rewrites in production since vercel.json handles routing
   ...(process.env.NODE_ENV === 'development' ? {
     async rewrites() {
       return [
