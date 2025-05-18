@@ -37,13 +37,9 @@ $PIP_CMD install --user -r requirements.txt
 if python3 -c "import django" &> /dev/null; then
     echo "Django installed successfully"
     
-    # Collect static files
-    echo "Collecting static files..."
-    python3 manage.py collectstatic --noinput || echo "Static collection failed, but continuing..."
-    
-    # Run migrations
-    echo "Running migrations..."
-    python3 manage.py migrate --noinput || echo "Migrations failed, but continuing..."
+    # Skip static collection and migrations in build phase
+    # These will be handled by the Django app during runtime
+    echo "Skipping static collection and migrations for build phase..."
 else
     echo "Django installation failed, but continuing with frontend build..."
 fi
