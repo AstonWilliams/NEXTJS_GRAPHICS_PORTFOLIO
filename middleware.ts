@@ -8,9 +8,6 @@ export function middleware(request: NextRequest) {
   // Check if the path is for the admin panel
   const isAdminPath = path.startsWith("/admin")
 
-  // Check if the request is for an API route
-  const isApiPath = path.startsWith("/api")
-
   // Get the protocol (http or https)
   const protocol = request.nextUrl.protocol
 
