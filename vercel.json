@@ -35,6 +35,5 @@
       "src": "/(.*)",
       "dest": "/$1"
     }
-  ],
-  "buildCommand": "chmod +x ./build.sh && ./build.sh && next build"
+  ]
 }

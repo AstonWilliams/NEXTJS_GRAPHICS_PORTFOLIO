@@ -6,13 +6,19 @@ Script to create a superuser for the Django application.
 import os
 import sys
 import django
+import time
 
 # Set up Django environment
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_portfolio.settings')
-django.setup()
+
+try:
+    django.setup()
+except Exception as e:
+    print(f"Error setting up Django: {e}")
+    sys.exit(1)
 
 from django.contrib.auth.models import User
-from django.db import IntegrityError
+from django.db import IntegrityError, OperationalError, ProgrammingError
 
 # Import token blacklist models - with error handling
 try:
@@ -28,6 +34,15 @@ def create_admin():
     email = 'admin@example.com'
     password = 'admin123'
     
+    # Check if the auth_user table exists
+    try:
+        # Try to query the User model to see if the table exists
+        User.objects.count()
+    except (OperationalError, ProgrammingError) as e:
+        print(f"Database error: {e}")
+        print("The auth_user table might not exist yet. Make sure migrations have been run.")
+        return
+    
     try:
         # Check if user exists
         if User.objects.filter(username=username).exists():
@@ -41,16 +56,19 @@ def create_admin():
             
             # Invalidate existing tokens if token blacklist is available
             if OutstandingToken is not None:
-                # Delete all outstanding tokens for this user
-                tokens = OutstandingToken.objects.filter(user=user)
-                for token in tokens:
-                    try:
-                        # Create blacklisted token entry
-                        BlacklistedToken.objects.get_or_create(token=token)
-                    except Exception as e:
-                        print(f"Error blacklisting token: {e}")
-                
-                print(f"All existing tokens for '{username}' have been invalidated.")
+                try:
+                    # Delete all outstanding tokens for this user
+                    tokens = OutstandingToken.objects.filter(user=user)
+                    for token in tokens:
+                        try:
+                            # Create blacklisted token entry
+                            BlacklistedToken.objects.get_or_create(token=token)
+                        except Exception as e:
+                            print(f"Error blacklisting token: {e}")
+                    
+                    print(f"All existing tokens for '{username}' have been invalidated.")
+                except Exception as e:
+                    print(f"Error handling tokens: {e}")
             
         else:
             # Create new superuser
@@ -65,4 +83,6 @@ def create_admin():
         print(f"Error creating superuser: {e}")
 
 if __name__ == '__main__':
+    # Add a small delay to ensure database is ready
+    time.sleep(1)
     create_admin()

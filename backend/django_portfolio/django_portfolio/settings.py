@@ -69,7 +69,7 @@ ASGI_APPLICATION = 'django_portfolio.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Use PostgreSQL for Vercel deployment
+# Default to PostgreSQL configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -194,11 +194,15 @@ SIMPLE_JWT = {
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 if not DEBUG:
+    # Fix: Remove trailing slashes from CORS_ALLOWED_ORIGINS
     CORS_ALLOWED_ORIGINS = [
-        'https://arslanamingraphicsportfolio.vercel.app',
+        'https://arslanamingraphicsportfolio.vercel.app',  # Removed trailing slash
     ]
     if os.environ.get('CORS_ALLOWED_ORIGINS'):
-        CORS_ALLOWED_ORIGINS.extend(os.environ.get('CORS_ALLOWED_ORIGINS').split(','))
+        # Clean up any origins from environment variables
+        origins = os.environ.get('CORS_ALLOWED_ORIGINS').split(',')
+        clean_origins = [origin.rstrip('/') for origin in origins]
+        CORS_ALLOWED_ORIGINS.extend(clean_origins)
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

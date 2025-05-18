@@ -42,18 +42,31 @@ if python3 -c "import django" &> /dev/null; then
     mkdir -p media
     mkdir -p static
     
-    # Run Django commands
-    echo "Running makemigrations..."
-    python3 manage.py makemigrations portfolio || echo "makemigrations failed, but continuing..."
-    
+    # Fix: Run migrations directly without makemigrations first
     echo "Running migrations..."
-    python3 manage.py migrate || echo "migrations failed, but continuing..."
+    # First, run migrate for the built-in Django apps to create the auth tables
+    python3 manage.py migrate auth
+    python3 manage.py migrate admin
+    python3 manage.py migrate contenttypes
+    python3 manage.py migrate sessions
     
+    # Then run migrate for all apps
+    python3 manage.py migrate
+    
+    # Now run makemigrations for the portfolio app
+    echo "Running makemigrations for portfolio app..."
+    python3 manage.py makemigrations portfolio
+    
+    # Apply those migrations
+    python3 manage.py migrate portfolio
+    
+    # Create admin user after migrations are complete
     echo "Creating admin user..."
-    python3 create_admin.py || echo "create_admin.py failed, but continuing..."
+    python3 create_admin.py
     
+    # Collect static files
     echo "Collecting static files..."
-    python3 manage.py collectstatic --noinput || echo "collectstatic failed, but continuing..."
+    python3 manage.py collectstatic --noinput
 else
     echo "Django installation failed, but continuing with frontend build..."
 fi
