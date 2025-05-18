@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 
-// Update the authentication endpoint to match Django's JWT authentication exactly
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -8,14 +7,14 @@ export async function POST(request: Request) {
 
     console.log("Attempting authentication with:", { username, password: "***" })
 
-    // Use the hostname from the request to determine the API URL
+    // Use the actual server hostname when not on localhost
     const requestUrl = new URL(request.url)
     const hostname = requestUrl.hostname
 
     // Use the actual server hostname when not on localhost
     const apiUrl =
       hostname !== "localhost" && hostname !== "127.0.0.1"
-        ? `http://${hostname}:8000/api`
+        ? `https://${hostname}/api`
         : process.env.DJANGO_API_URL || "http://127.0.0.1:8000/api"
 
     console.log("Using API URL:", apiUrl)
@@ -30,7 +29,14 @@ export async function POST(request: Request) {
 
     console.log("Auth response status:", response.status)
 
-    const data = await response.json()
+    // Check if the response is empty
+    const text = await response.text()
+    if (!text) {
+      return NextResponse.json({ success: false, message: "Empty response from server" }, { status: 500 })
+    }
+
+    // Parse the response text as JSON
+    const data = JSON.parse(text)
 
     // Don't log sensitive token information
     console.log("Auth response received with keys:", Object.keys(data))
@@ -55,6 +61,13 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("Error during authentication:", error)
-    return NextResponse.json({ error: "Authentication failed", success: false }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Authentication failed",
+        success: false,
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
