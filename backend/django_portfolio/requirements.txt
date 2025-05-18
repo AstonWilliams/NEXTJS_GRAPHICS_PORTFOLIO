@@ -13,3 +13,4 @@ uvicorn
 channels
 daphne
 dj-database-url
+psycopg2
