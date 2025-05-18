@@ -20,14 +20,6 @@ except Exception as e:
 from django.contrib.auth.models import User
 from django.db import IntegrityError, OperationalError, ProgrammingError
 
-# Import token blacklist models - with error handling
-try:
-    from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-except ImportError:
-    print("Warning: Could not import token blacklist models. Token invalidation may not work properly.")
-    OutstandingToken = None
-    BlacklistedToken = None
-
 def create_admin():
     """Create a superuser if one doesn't exist."""
     username = 'admin'
@@ -54,21 +46,8 @@ def create_admin():
             user.save()
             print(f"Password for '{username}' has been updated.")
             
-            # Invalidate existing tokens if token blacklist is available
-            if OutstandingToken is not None:
-                try:
-                    # Delete all outstanding tokens for this user
-                    tokens = OutstandingToken.objects.filter(user=user)
-                    for token in tokens:
-                        try:
-                            # Create blacklisted token entry
-                            BlacklistedToken.objects.get_or_create(token=token)
-                        except Exception as e:
-                            print(f"Error blacklisting token: {e}")
-                    
-                    print(f"All existing tokens for '{username}' have been invalidated.")
-                except Exception as e:
-                    print(f"Error handling tokens: {e}")
+            # Skip token handling since it's causing issues
+            print("Skipping token invalidation for simplicity.")
             
         else:
             # Create new superuser

@@ -27,6 +27,14 @@ export async function getAuthToken(request: Request): Promise<string | null> {
   return getTokenFromRequest(request)
 }
 
+// Client-side function to get token from localStorage
+export function getClientAuthToken(): string | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+  return localStorage.getItem("authToken")
+}
+
 // Add other auth utility functions
 export function setAuthToken(token: string): void {
   if (typeof window === "undefined") {
