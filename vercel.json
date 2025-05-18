@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/django_portfolio/vercel_app.py",
+      "src": "backend/django_portfolio/vercel.py",
       "use": "@vercel/python",
       "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
     },
@@ -14,19 +14,19 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/django_portfolio/vercel_app.py"
+      "dest": "backend/django_portfolio/vercel.py"
     },
     {
       "src": "/admin-api/(.*)",
-      "dest": "backend/django_portfolio/vercel_app.py"
+      "dest": "backend/django_portfolio/vercel.py"
     },
     {
       "src": "/media/(.*)",
-      "dest": "backend/django_portfolio/vercel_app.py"
+      "dest": "backend/django_portfolio/vercel.py"
     },
     {
       "src": "/static/(.*)",
-      "dest": "backend/django_portfolio/vercel_app.py"
+      "dest": "backend/django_portfolio/vercel.py"
     },
     {
       "src": "/(.*)",
@@ -34,6 +34,8 @@
     }
   ],
   "env": {
-    "DJANGO_SETTINGS_MODULE": "django_portfolio.settings"
+    "DJANGO_SETTINGS_MODULE": "django_portfolio.settings",
+    "DEBUG": "0",
+    "ALLOWED_HOSTS": "*.vercel.app,*.now.sh"
   }
 }

@@ -3,7 +3,23 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { LayoutDashboard, ImageIcon, Type, Printer, Monitor, MessageSquare, Settings, LogOut, Plus, Search, Edit, Trash2, MoreVertical, Check, X } from 'lucide-react'
+import {
+  LayoutDashboard,
+  ImageIcon,
+  Type,
+  Printer,
+  Monitor,
+  MessageSquare,
+  Settings,
+  LogOut,
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  MoreVertical,
+  Check,
+  X,
+} from "lucide-react"
 
 export default function AdminDashboardPage() {
   const [activeSection, setActiveSection] = useState("dashboard")
@@ -11,6 +27,7 @@ export default function AdminDashboardPage() {
   const [messages, setMessages] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
   const router = useRouter()
 
   // Use refs to track token verification state
@@ -37,18 +54,12 @@ export default function AdminDashboardPage() {
     const verifyToken = async () => {
       try {
         tokenRefreshInProgress.current = true
+        setError(null)
 
-        // Use the actual hostname when not on localhost
-        const hostname = window.location.hostname
-        const apiUrl =
-          hostname !== "localhost" && hostname !== "127.0.0.1"
-            ? `${window.location.protocol}//${hostname}${window.location.port ? `:${window.location.port}` : ""}/api`
-            : "/api"
-
-        console.log("Verifying token with API URL:", apiUrl)
+        console.log("Verifying token...")
 
         // First check if token is valid
-        const verifyResponse = await fetch(`${apiUrl}/auth/verify`, {
+        const verifyResponse = await fetch(`/api/auth/verify`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -72,31 +83,38 @@ export default function AdminDashboardPage() {
             return
           }
 
-          const refreshResponse = await fetch(`${apiUrl}/auth/refresh`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ refresh: refreshToken }),
-            cache: "no-store",
-          })
+          try {
+            const refreshResponse = await fetch(`/api/auth/refresh`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ refresh: refreshToken }),
+              cache: "no-store",
+            })
 
-          if (refreshResponse.ok) {
-            const data = await refreshResponse.json()
-            localStorage.setItem("authToken", data.access)
-            lastTokenRefresh.current = Date.now()
-            tokenVerified.current = true
-            fetchData() // Fetch data after token refresh
-          } else {
-            // Refresh failed, redirect to login
-            localStorage.removeItem("authToken")
-            localStorage.removeItem("refreshToken")
-            localStorage.removeItem("user")
+            if (refreshResponse.ok) {
+              const data = await refreshResponse.json()
+              localStorage.setItem("authToken", data.access)
+              lastTokenRefresh.current = Date.now()
+              tokenVerified.current = true
+              fetchData() // Fetch data after token refresh
+            } else {
+              // Refresh failed, redirect to login
+              localStorage.removeItem("authToken")
+              localStorage.removeItem("refreshToken")
+              localStorage.removeItem("user")
+              router.push("/admin")
+            }
+          } catch (refreshError) {
+            console.error("Error refreshing token:", refreshError)
+            setError("Failed to refresh authentication token")
             router.push("/admin")
           }
         }
       } catch (error) {
         console.error("Error verifying token:", error)
+        setError("Failed to verify authentication token")
         router.push("/admin")
       } finally {
         tokenRefreshInProgress.current = false
@@ -106,6 +124,7 @@ export default function AdminDashboardPage() {
     // Fetch data function
     const fetchData = async () => {
       setIsLoading(true)
+      setError(null)
       const token = localStorage.getItem("authToken")
 
       try {
@@ -144,8 +163,8 @@ export default function AdminDashboardPage() {
           }
 
           const data = await response.json()
-          console.log(`Fetched ${data.results ? data.results.length : Array.isArray(data) ? data.length : 0} projects:`, data)
-          
+          console.log(`Fetched projects data:`, data)
+
           // Handle both paginated and non-paginated responses
           const projectsArray = data.results || data
           if (Array.isArray(projectsArray)) {
@@ -167,6 +186,8 @@ export default function AdminDashboardPage() {
 
           if (response.ok) {
             const data = await response.json()
+            console.log(`Fetched messages data:`, data)
+
             // Handle both paginated and non-paginated responses
             const messagesArray = data.results || data
             if (Array.isArray(messagesArray)) {
@@ -175,10 +196,13 @@ export default function AdminDashboardPage() {
               console.error("Unexpected messages data format:", data)
               setMessages([])
             }
+          } else {
+            console.error(`Failed to fetch messages: ${response.status}`)
           }
         }
       } catch (error) {
         console.error("Error fetching data:", error)
+        setError("Failed to load data. Please try again.")
       } finally {
         setIsLoading(false)
       }
@@ -289,8 +313,8 @@ export default function AdminDashboardPage() {
   // Filter projects based on search term
   const filteredProjects = projects.filter(
     (project) =>
-      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.category.toLowerCase().includes(searchTerm.toLowerCase()),
+      project.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.category?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   return (
@@ -435,6 +459,10 @@ export default function AdminDashboardPage() {
         </header>
 
         <main className="p-6">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-lg mb-6">{error}</div>
+          )}
+
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
@@ -473,56 +501,69 @@ export default function AdminDashboardPage() {
                         Add New Project
                       </Link>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-zinc-800">
-                            <th className="text-left py-3 px-4 text-zinc-400 font-medium">Project</th>
-                            <th className="text-left py-3 px-4 text-zinc-400 font-medium">Category</th>
-                            <th className="text-left py-3 px-4 text-zinc-400 font-medium">Date</th>
-                            <th className="text-right py-3 px-4 text-zinc-400 font-medium">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {projects.slice(0, 5).map((project) => (
-                            <tr key={project.id} className="border-b border-zinc-800">
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-3">
-                                  <img
-                                    src={
-                                      project.images && project.images.length > 0
-                                        ? project.images[0].image
-                                        : "/placeholder.svg?height=40&width=40&text=No+Image"
-                                    }
-                                    alt={project.title}
-                                    className="w-10 h-10 rounded object-cover"
-                                  />
-                                  <span>{project.title}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">{project.category}</td>
-                              <td className="py-3 px-4">{project.date}</td>
-                              <td className="py-3 px-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Link
-                                    href={`/admin/projects/${project.id}/edit`}
-                                    className="p-1 text-zinc-400 hover:text-white"
-                                  >
-                                    <Edit size={16} />
-                                  </Link>
-                                  <button
-                                    className="p-1 text-zinc-400 hover:text-red-500"
-                                    onClick={() => handleDeleteProject(project.id)}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
+                    {projects.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-zinc-800">
+                              <th className="text-left py-3 px-4 text-zinc-400 font-medium">Project</th>
+                              <th className="text-left py-3 px-4 text-zinc-400 font-medium">Category</th>
+                              <th className="text-left py-3 px-4 text-zinc-400 font-medium">Date</th>
+                              <th className="text-right py-3 px-4 text-zinc-400 font-medium">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {projects.slice(0, 5).map((project) => (
+                              <tr key={project.id} className="border-b border-zinc-800">
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={
+                                        project.images && project.images.length > 0
+                                          ? project.images[0].image
+                                          : "/placeholder.svg?height=40&width=40&text=No+Image"
+                                      }
+                                      alt={project.title}
+                                      className="w-10 h-10 rounded object-cover"
+                                    />
+                                    <span>{project.title}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">{project.category}</td>
+                                <td className="py-3 px-4">{project.date}</td>
+                                <td className="py-3 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Link
+                                      href={`/admin/projects/${project.id}/edit`}
+                                      className="p-1 text-zinc-400 hover:text-white"
+                                    >
+                                      <Edit size={16} />
+                                    </Link>
+                                    <button
+                                      className="p-1 text-zinc-400 hover:text-red-500"
+                                      onClick={() => handleDeleteProject(project.id)}
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-zinc-400 mb-4">No projects found</p>
+                        <Link
+                          href="/admin/projects/new"
+                          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors inline-flex items-center gap-2"
+                        >
+                          <Plus size={18} />
+                          Add New Project
+                        </Link>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-zinc-900 rounded-xl p-6">
@@ -611,56 +652,55 @@ export default function AdminDashboardPage() {
                     </Link>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredProjects
-                      .filter(
-                        (project) => activeSection === "projects" || project.category.toLowerCase() === activeSection,
-                      )
-                      .map((project) => (
-                        <div key={project.id} className="bg-zinc-900 rounded-xl overflow-hidden">
-                          <div className="relative h-48">
-                            <img
-                              src={
-                                project.images && project.images.length > 0
-                                  ? project.images[0].image
-                                  : "/placeholder.svg?height=200&width=300&text=No+Image"
-                              }
-                              alt={project.title}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute top-2 right-2">
-                              <div className="relative">
-                                <button className="p-2 bg-black/50 rounded-full">
-                                  <MoreVertical size={16} />
+                  {filteredProjects.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredProjects
+                        .filter(
+                          (project) =>
+                            activeSection === "projects" || project.category?.toLowerCase() === activeSection,
+                        )
+                        .map((project) => (
+                          <div key={project.id} className="bg-zinc-900 rounded-xl overflow-hidden">
+                            <div className="relative h-48">
+                              <img
+                                src={
+                                  project.images && project.images.length > 0
+                                    ? project.images[0].image
+                                    : "/placeholder.svg?height=200&width=300&text=No+Image"
+                                }
+                                alt={project.title}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute top-2 right-2">
+                                <div className="relative">
+                                  <button className="p-2 bg-black/50 rounded-full">
+                                    <MoreVertical size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              <h3 className="font-bold mb-1">{project.title}</h3>
+                              <p className="text-zinc-400 text-sm mb-4">{project.category}</p>
+                              <div className="flex justify-between">
+                                <Link
+                                  href={`/admin/projects/${project.id}/edit`}
+                                  className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded transition-colors text-sm"
+                                >
+                                  Edit
+                                </Link>
+                                <button
+                                  className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded transition-colors text-sm"
+                                  onClick={() => handleDeleteProject(project.id)}
+                                >
+                                  Delete
                                 </button>
                               </div>
                             </div>
                           </div>
-                          <div className="p-4">
-                            <h3 className="font-bold mb-1">{project.title}</h3>
-                            <p className="text-zinc-400 text-sm mb-4">{project.category}</p>
-                            <div className="flex justify-between">
-                              <Link
-                                href={`/admin/projects/${project.id}/edit`}
-                                className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded transition-colors text-sm"
-                              >
-                                Edit
-                              </Link>
-                              <button
-                                className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded transition-colors text-sm"
-                                onClick={() => handleDeleteProject(project.id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {filteredProjects.filter(
-                    (project) => activeSection === "projects" || project.category.toLowerCase() === activeSection,
-                  ).length === 0 && (
+                        ))}
+                    </div>
+                  ) : (
                     <div className="bg-zinc-900 rounded-xl p-8 text-center">
                       <p className="text-zinc-400 mb-4">No projects found.</p>
                       <Link

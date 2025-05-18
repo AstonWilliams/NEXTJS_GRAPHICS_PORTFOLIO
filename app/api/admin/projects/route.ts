@@ -14,8 +14,8 @@ export async function GET(request: Request) {
 
     const token = authHeader.substring(7)
 
-    // Build the API URL
-    const apiUrl = process.env.DJANGO_API_URL || "http://127.0.0.1:8000/api"
+    // Build the API URL - use relative URL for Vercel deployment
+    const apiUrl = "/api"
     let url = `${apiUrl}/projects/`
 
     // Add query parameters if provided
@@ -48,11 +48,23 @@ export async function GET(request: Request) {
       throw new Error(`Failed to fetch projects: ${response.status}`)
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Check if response is empty
+    const text = await response.text()
+    if (!text) {
+      console.log("Empty response received from API")
+      return NextResponse.json({ results: [] }) // Return empty results array
+    }
+
+    try {
+      const data = JSON.parse(text)
+      return NextResponse.json(data)
+    } catch (e) {
+      console.error("Error parsing JSON:", e)
+      return NextResponse.json({ results: [] }) // Return empty results on parse error
+    }
   } catch (error) {
     console.error("Error fetching projects:", error)
-    return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to fetch projects", results: [] }, { status: 500 })
   }
 }
 
@@ -66,8 +78,8 @@ export async function POST(request: Request) {
 
     const token = authHeader.substring(7)
 
-    // Build the API URL
-    const apiUrl = process.env.DJANGO_API_URL || "http://127.0.0.1:8000/api"
+    // Build the API URL - use relative URL for Vercel deployment
+    const apiUrl = "/api"
     const url = `${apiUrl}/projects/`
 
     // Get the form data from the request
@@ -101,8 +113,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorText }, { status: response.status })
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Check if response is empty
+    const text = await response.text()
+    if (!text) {
+      console.log("Empty response received from API")
+      return NextResponse.json({ success: true }) // Return success with no data
+    }
+
+    try {
+      const data = JSON.parse(text)
+      return NextResponse.json(data)
+    } catch (e) {
+      console.error("Error parsing JSON:", e)
+      return NextResponse.json({ success: true }) // Return success on parse error
+    }
   } catch (error) {
     console.error("Error creating project:", error)
     return NextResponse.json({ error: "Failed to create project" }, { status: 500 })
