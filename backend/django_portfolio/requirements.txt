@@ -1,0 +1,14 @@
+Django
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+django-filter
+Pillow
+python-dotenv
+gunicorn
+whitenoise
+redis
+django-redis
+uvicorn
+channels
+daphne
